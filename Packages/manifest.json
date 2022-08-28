@@ -9,6 +9,7 @@
     }
   ],
   "dependencies": {
+    "com.unity.ide.rider": "3.0.15",
     "com.unity.ugui": "1.0.0",
     "jp.keijiro.klak.testtools": "1.0.3"
   }

@@ -1,0 +1,44 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Swap
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+
+struct ParticleConnection
+{
+    int indexA;
+    int indexB;
+    float2 basePosition;
+    float intensity;
+};
+
+StructuredBuffer<ParticleConnection> connectionBuffer;
+
+StructuredBuffer<int> src;
+RWStructuredBuffer<int> dest;
+int mainIter;
+int subIter;
+int count;
+
+[numthreads(256,1,1)]
+void Swap (uint3 id : SV_DispatchThreadID)
+{
+    int mainSize = pow(2,mainIter + 1);
+    int stride = pow(2,mainIter - subIter);
+    int index = id.x;
+    int isSwappable = index % (stride*2) < (stride) ? 1 : 0;
+    int dir = (index /mainSize) % 2;
+    int from = src[index];
+    int to = src[index + stride];
+    if(isSwappable == 1)
+    {
+        if(dir == (connectionBuffer[from].indexA < connectionBuffer[to].indexA || (connectionBuffer[from].indexA == connectionBuffer[to].indexA && connectionBuffer[from].indexB < connectionBuffer[to].indexB)))
+        {
+            int tmp=to;
+            to=from;
+            from=tmp;
+        }
+        dest[index] = from;
+        dest[index + stride] = to;
+    }    
+}

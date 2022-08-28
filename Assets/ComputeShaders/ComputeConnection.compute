@@ -1,0 +1,102 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Init
+#pragma kernel Update
+#pragma kernel ReIndex
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+
+
+struct Particle
+{
+    float2 pos;
+    float2 vel;
+    float lifeTime;
+    int isActive;
+};
+
+
+struct ParticleConnection
+{
+    int indexA;
+    int indexB;
+    float2 basePosition;
+    float intensity;
+};
+
+StructuredBuffer<ParticleConnection> src;
+RWStructuredBuffer<ParticleConnection> dest;
+
+AppendStructuredBuffer<int> connectionIndexPool;
+
+StructuredBuffer<Particle> particleBuffer;
+RWStructuredBuffer<int> indexBuffer;
+RWStructuredBuffer<int> beginIndexBuffer;
+float deltaTime;
+
+[numthreads(256,1,1)]
+void Init (uint3 id : SV_DispatchThreadID)
+{
+    // uint index = id.x;
+    // ParticleConnection c;
+    // if(index >= 128)
+    // {
+    //     c.indexB = index % 128;
+    //     c.indexA = (index + 1) % 128;
+    // }else
+    // {
+    //     c.indexA = index % 128;
+    //     c.indexB = (index + 1) % 128;
+    // }
+    // float2 posA = float2(sin(c.indexA * 6.28 / 128.0),cos(c.indexA * 6.28 / 128.0)) * 2.0;
+    // float2 posB = float2(sin(c.indexB * 6.28 / 128.0),cos(c.indexB * 6.28 / 128.0)) * 2.0;
+    // c.basePosition = posB - posA;
+    // c.intensity = 22.5;
+    // dest[index] = c;
+    // indexBuffer[index] = index;
+}
+
+[numthreads(256,1,1)]
+void Update (uint3 id : SV_DispatchThreadID)
+{
+    uint index = id.x;
+    ParticleConnection c = src[index];
+    if(c.indexA == -1 || c.indexB == -1)
+    {
+        dest[index] = c;
+        return;
+    }
+    Particle pA = particleBuffer[c.indexA];
+    Particle pB = particleBuffer[c.indexB];
+    if(pA.lifeTime < 0.0 || pB.lifeTime < 0.0)
+    {
+        c.indexA = -1;
+        c.indexB = -1;
+        connectionIndexPool.Append(index);
+    }
+    dest[index] = c;
+}
+
+[numthreads(256,1,1)]
+void ReIndex (uint3 id : SV_DispatchThreadID)
+{
+    uint index = id.x;
+
+    
+    ParticleConnection c = src[indexBuffer[index]];
+    ParticleConnection prevC = src[indexBuffer[index - 1]];
+    int currentIndex = c.indexA;
+    int prevIndex = prevC.indexA;
+
+    if(currentIndex == 0 && index == 0)
+    {
+        beginIndexBuffer[currentIndex] = index;
+    }
+    
+    if(prevIndex < currentIndex)
+    {
+        //currentIndexがそのインデックスのブロックの始まり
+        beginIndexBuffer[currentIndex] = index;
+    }
+    
+}
