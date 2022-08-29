@@ -68,7 +68,7 @@ Shader "Unlit/RenderConnection"
                 Particle pA = buffer[c.indexA];
                 Particle pB = buffer[c.indexB];
                 float2 vecA = (pB.pos - pA.pos);
-                float2 vecB = normalize(float2(-vecA.y,vecA.x)) * 0.1;
+                float2 vecB = normalize(float2(-vecA.y,vecA.x)) * 0.025;
                 float2 pos = (vecA * v.vertex.x + vecB * v.vertex.y) + (pA.pos + pB.pos) * 0.5;
                 o.vertex = UnityObjectToClipPos(float4(pos,0.0,1.0));
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
@@ -79,7 +79,7 @@ Shader "Unlit/RenderConnection"
             fixed4 frag(v2f i) : SV_Target
             {
                 // sample the texture
-                fixed4 col = tex2D(_MainTex, i.uv);
+                fixed4 col = tex2D(_MainTex, i.uv) * 2.0;
                 // apply fog
                 UNITY_APPLY_FOG(i.fogCoord, col);
                 return col;

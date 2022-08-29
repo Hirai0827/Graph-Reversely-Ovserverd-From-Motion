@@ -14,6 +14,7 @@ namespace DefaultNamespace
         private const string ConnectionBufferId = "connectionBuffer";
         private const string connectionIndexBufferId = "connectionIndexBuffer";
         private const string connectionBeginIndexBufferId = "connectionBeginIndexBuffer";
+        private const string connectionEndIndexBufferId = "connectionEndIndexBuffer";
         private const string particleIndexPoolId = "particleIndexPool";
         private const string DeltaTimeId = "deltaTime";
         private const string MaxParticleId = "maxParticle";
@@ -55,7 +56,7 @@ namespace DefaultNamespace
             SwappableComputeBuffer<ParticleConnection> connectionBuffer,
             ComputeBuffer connectionIndexBuffer,
             ComputeBuffer connectionBeginIndexBuffer,
-            ComputeBuffer particleIndexPool,
+            ComputeBuffer connectionEndIndexBuffer,
             float deltaTime)
         {
             var dispatchCount = GetDispatchCount(buffer.Count);
@@ -65,7 +66,7 @@ namespace DefaultNamespace
             this.computeShader.SetBuffer(updateKernelId,ConnectionBufferId,connectionBuffer.Src);
             this.computeShader.SetBuffer(updateKernelId,connectionIndexBufferId,connectionIndexBuffer);
             this.computeShader.SetBuffer(updateKernelId,connectionBeginIndexBufferId,connectionBeginIndexBuffer);
-            this.computeShader.SetBuffer(updateKernelId,particleIndexPoolId,particleIndexPool);
+            this.computeShader.SetBuffer(updateKernelId,connectionEndIndexBufferId,connectionEndIndexBuffer);
             this.computeShader.SetFloat(DeltaTimeId,deltaTime);
             this.computeShader.SetInt(MaxConnectionId,connectionBuffer.Count);
             this.computeShader.SetInt(MaxParticleId,buffer.Count);

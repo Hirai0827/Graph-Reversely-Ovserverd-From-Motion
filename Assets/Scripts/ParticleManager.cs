@@ -1,10 +1,8 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using DefaultNamespace;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 public struct Particle
 {
@@ -31,46 +29,36 @@ public class ParticleManager : MonoBehaviour
     [SerializeField] private ParticleRenderer renderer;
     [SerializeField] private ComputeShader computeParticleShader;
     [SerializeField] private ComputeShader computeConnectionShader;
-    [SerializeField] private ComputeShader computeInteractionShader;
-    [SerializeField] private ComputeShader computePoolShader;
     [SerializeField] private ComputeShader sortShader; 
     [SerializeField] private int particleLimit;
     [SerializeField] private int connectionLimit;
 
 
-
+    private GPUResourceManager manager;
 
     private SwappableComputeBuffer<int> connectionIndexBuffer;
     private SwappableComputeBuffer<Particle> particleBuffer;
     private SwappableComputeBuffer<ParticleConnection> connectionBuffer;
-    private ComputeBuffer particleIndexPool;
-    private ComputeBuffer connectionIndexPool;
     private ComputeBuffer connectionBeginIndexBuffer;
+    private ComputeBuffer connectionEndIndexBuffer;
     
-    private ComputeParticleDispatcher dispatcher;
+    private ComputeParticleDispatcher particleDispatcher;
     private ComputeConnectionDispatcher connectionDispatcher;
-    private ComputeInteractionDispatcher interactionDispatcher;
-    private ComputePoolDispatcher computePoolDispatcher;
 
     private void InitInternal()
     {
+        manager = new GPUResourceManager(particleLimit,16);
         particleBuffer = new SwappableComputeBuffer<Particle>(particleLimit);
         connectionIndexBuffer = new SwappableComputeBuffer<int>(connectionLimit);
         connectionBuffer = new SwappableComputeBuffer<ParticleConnection>(connectionLimit);
-        
-        particleIndexPool = new ComputeBuffer(particleLimit, Marshal.SizeOf(typeof(int)), ComputeBufferType.Append);
-        connectionIndexPool = new ComputeBuffer(connectionLimit, Marshal.SizeOf(typeof(int)), ComputeBufferType.Append);
-        
+
         connectionBeginIndexBuffer = new ComputeBuffer(particleLimit, Marshal.SizeOf(typeof(int)));
+        connectionEndIndexBuffer = new ComputeBuffer(particleLimit, Marshal.SizeOf(typeof(int)));
         
-        dispatcher = new ComputeParticleDispatcher(computeParticleShader);
+        particleDispatcher = new ComputeParticleDispatcher(computeParticleShader);
         connectionDispatcher = new ComputeConnectionDispatcher(computeConnectionShader,sortShader);
-        interactionDispatcher = new ComputeInteractionDispatcher(computeInteractionShader);
-        computePoolDispatcher = new ComputePoolDispatcher(computePoolShader);
-        
-        computePoolDispatcher.DispatchInit(ref particleIndexPool,ref connectionIndexPool);
         connectionDispatcher.DispatchInit(connectionBuffer,connectionIndexBuffer);
-        dispatcher.DispatchInit(particleBuffer);
+        particleDispatcher.DispatchInit(particleBuffer);
         renderer.Init();
     }
 
@@ -89,53 +77,60 @@ public class ParticleManager : MonoBehaviour
         Render();
         if (Input.GetKeyDown(KeyCode.A))
         {
-            interactionDispatcher.DispatchDrawCircle(particleBuffer,connectionBuffer,particleIndexPool,connectionIndexPool);
+            var bubble = new GPUItemBubble(new Vector2(Random.Range(-4.0f,4.0f),Random.Range(-4.0f,4.0f)),0.25f);
+            var offset = manager.FindEmptySlot(1);
+            Debug.Log(offset);
+            if (offset == -1)
+            {
+                return;
+            }
+            manager.RegisterItem(bubble,offset,particleBuffer,connectionBuffer);
         }
     }
 
 
     private void UpdateInternal(float deltaTime)
     {
-        
-        
+
+        particleDispatcher.DispatchUpdate(particleBuffer,connectionBuffer,connectionIndexBuffer.Src,connectionBeginIndexBuffer,connectionEndIndexBuffer,deltaTime);
+        connectionDispatcher.DispatchUpdate(connectionIndexBuffer,particleBuffer,connectionBuffer,ref connectionBeginIndexBuffer,ref connectionEndIndexBuffer,deltaTime);
+    }
+
+    public void LogInfo()
+    {
         var array = new ParticleConnection[connectionBuffer.Src.count];
         connectionBuffer.Src.GetData(array);
         
-        
-        Debug.Log(connectionIndexBuffer.Src.count);
-        var array2 = new uint[connectionIndexBuffer.Src.count];
-        connectionIndexBuffer.Src.GetData(array2);
         var str = "";
+        for (int i = 0; i < array.Length; i++)
+        {
+            str += "(" + array[i].indexA + "," + array[i].indexB + ")";
+            //str += "(" + array[array2[i]].intensity + ")";
+        }
+        Debug.Log(str);
+        
+        //Debug.Log(connectionIndexBuffer.Src.count);
+        var array2 = new int[connectionIndexBuffer.Src.count];
+        connectionIndexBuffer.Src.GetData(array2);
+        str = "";
         for (int i = 0; i < array2.Length; i++)
-        { 
-            str += "(" + array[array2[i]].indexA + "," + array[array2[i]].indexB + ")";
-           //str += "(" + array[array2[i]].intensity + ")";
+        {
+            str += "[" + array2[i] + ":(" + array[array2[i]].indexA + "," + array[array2[i]].indexB + ")]";
+            //str += "(" + array[array2[i]].intensity + ")";
         }
         Debug.Log(str);
         
         
-        var array3 = new Particle[particleBuffer.Src.count];
-        particleBuffer.Src.GetData(array3);
+        var array3 = new int[connectionBeginIndexBuffer.count];
+        connectionBeginIndexBuffer.GetData(array3);
+        var array4 = new int[connectionEndIndexBuffer.count];
+        connectionEndIndexBuffer.GetData(array4);
         var str2 = "";
         for (int i = 0; i < array3.Length; i++)
         {
-            str2 += array3[i].vel + ",";
+            str2 += "(" + array3[i] + "," + array4[i] + ")";
         }
         Debug.Log(str2);
-        dispatcher.DispatchUpdate(particleBuffer,connectionBuffer,connectionIndexBuffer.Src,connectionBeginIndexBuffer,particleIndexPool,deltaTime);
-        connectionDispatcher.DispatchUpdate(connectionIndexBuffer,particleBuffer,connectionBuffer,ref connectionBeginIndexBuffer,ref connectionIndexPool,deltaTime);
-
-        var array4 = new uint[connectionIndexPool.count];
-        connectionIndexPool.GetData(array4);
-        var str3 = "";
-        for (int i = 0; i < array4.Length; i++)
-        {
-            str3 += array4[i] + ",";
-        }
-        Debug.Log(str3);
-        dispatcher.DispatchUpdate(particleBuffer,connectionBuffer,connectionIndexBuffer.Src,connectionBeginIndexBuffer,particleIndexPool,deltaTime);
-        connectionDispatcher.DispatchUpdate(connectionIndexBuffer,particleBuffer,connectionBuffer,ref connectionBeginIndexBuffer,ref connectionIndexPool,deltaTime);
-
     }
 
     private void OnDestroy()
@@ -144,8 +139,6 @@ public class ParticleManager : MonoBehaviour
         connectionBuffer.Release();
         connectionBeginIndexBuffer.Release();
         connectionIndexBuffer.Release();
-        connectionIndexPool.Release();
-        particleIndexPool.Release();
     }
 
     private void Render()

@@ -26,7 +26,8 @@ RWStructuredBuffer<Particle> dest;
 StructuredBuffer<ParticleConnection> connectionBuffer;
 StructuredBuffer<int> connectionIndexBuffer;
 StructuredBuffer<int> connectionBeginIndexBuffer;
-AppendStructuredBuffer<int> particleIndexPool;
+StructuredBuffer<int> connectionEndIndexBuffer;
+
 float deltaTime;
 int maxParticle;
 int maxConnection;
@@ -48,6 +49,7 @@ void Init (uint3 id : SV_DispatchThreadID)
     p.vel = 0;
     p.isActive = 0;
     p.lifeTime = 100.0;
+    dest[index] = p;
 }
 
 [numthreads(256,1,1)]
@@ -58,13 +60,9 @@ void Update (uint3 id : SV_DispatchThreadID)
     float2 acc = float2(0.0,0.0);
 
     int beginConnectionIndex = connectionBeginIndexBuffer[index];
-    int endConnectionIndex = connectionBeginIndexBuffer[index + 1];
-    if(index + 1 == maxParticle)
-    {
-        endConnectionIndex = maxConnection;
-    }
+    int endConnectionIndex = connectionEndIndexBuffer[index];
     
-    for(int i = beginConnectionIndex; i < min(maxConnection,endConnectionIndex); i++)
+    for(int i = beginConnectionIndex; i < endConnectionIndex; i++)
     {
         ParticleConnection c = connectionBuffer[connectionIndexBuffer[i]];
         if(c.indexB >= 0)
@@ -73,19 +71,28 @@ void Update (uint3 id : SV_DispatchThreadID)
             float2 relPos = connectedP.pos - p.pos;
             float distance = length(c.basePosition) - length(relPos);
             acc = acc - c.intensity*normalize(relPos) * distance;
-            acc = acc + normalize(relPos)/(0.5 + distance * distance * 8.0);
+            
+            //acc = acc + (normalize(relPos)/(1.0 + distance * distance * 0.25)) * 120.0;
         }
+    }
+
+    for(int i = 0; i < 32; i++)
+    {
+        Particle targetP = src[(i * 10274 + 100 + index) % maxParticle];
+        float2 relPos = targetP.pos - p.pos;
+        float distance = length(relPos);
+        float2 dir = distance < 0.000001 ? 0.000 : normalize(relPos);
+        acc = acc - (dir/(1.0 + distance * distance * 32.0)) * 24.0 *(float)targetP.isActive;
     }
     
     p.pos = p.pos + p.vel * deltaTime;
     p.vel = p.vel + acc * deltaTime;
-    p.vel = p.vel - p.vel * deltaTime * 2.0;
+    p.vel = p.vel *0.9;
     p.vel = isnan(p.vel) ? 0.0 : p.vel;
     p.lifeTime = p.lifeTime - deltaTime;
     if(p.lifeTime < 0.0 && p.isActive == 1)
     {
         p.isActive = 0;
-        particleIndexPool.Append(index);
     }
     p.pos.x = clamp(p.pos.x,-8,8);
     p.pos.y = clamp(p.pos.y,-8,8);

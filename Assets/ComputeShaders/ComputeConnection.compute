@@ -1,6 +1,7 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel Init
 #pragma kernel Update
+#pragma kernel ResetIndex
 #pragma kernel ReIndex
 
 // Create a RenderTexture with enableRandomWrite flag and set it
@@ -27,17 +28,17 @@ struct ParticleConnection
 StructuredBuffer<ParticleConnection> src;
 RWStructuredBuffer<ParticleConnection> dest;
 
-AppendStructuredBuffer<int> connectionIndexPool;
-
 StructuredBuffer<Particle> particleBuffer;
 RWStructuredBuffer<int> indexBuffer;
 RWStructuredBuffer<int> beginIndexBuffer;
+RWStructuredBuffer<int> endIndexBuffer;
 float deltaTime;
+int maxConnection;
 
 [numthreads(256,1,1)]
 void Init (uint3 id : SV_DispatchThreadID)
 {
-    // uint index = id.x;
+    uint index = id.x;
     // ParticleConnection c;
     // if(index >= 128)
     // {
@@ -53,7 +54,13 @@ void Init (uint3 id : SV_DispatchThreadID)
     // c.basePosition = posB - posA;
     // c.intensity = 22.5;
     // dest[index] = c;
-    // indexBuffer[index] = index;
+    ParticleConnection c;
+    c.indexA = -1;
+    c.indexB = -1;
+    c.intensity = 0.0;
+    c.basePosition = 0.0;
+    dest[index] = c;
+    indexBuffer[index] = index;
 }
 
 [numthreads(256,1,1)]
@@ -72,9 +79,17 @@ void Update (uint3 id : SV_DispatchThreadID)
     {
         c.indexA = -1;
         c.indexB = -1;
-        connectionIndexPool.Append(index);
     }
     dest[index] = c;
+}
+
+[numthreads(256,1,1)]
+void ResetIndex (uint3 id : SV_DispatchThreadID)
+{
+    uint index = id.x;
+    beginIndexBuffer[index] = 1024 * 1024;
+    endIndexBuffer[index] = -1;
+    
 }
 
 [numthreads(256,1,1)]
@@ -82,7 +97,7 @@ void ReIndex (uint3 id : SV_DispatchThreadID)
 {
     uint index = id.x;
 
-    
+    //indexBuffer[i]で並べたsrcはc.indexAが昇順に並んでいる
     ParticleConnection c = src[indexBuffer[index]];
     ParticleConnection prevC = src[indexBuffer[index - 1]];
     int currentIndex = c.indexA;
@@ -92,11 +107,16 @@ void ReIndex (uint3 id : SV_DispatchThreadID)
     {
         beginIndexBuffer[currentIndex] = index;
     }
+    if(index == maxConnection - 1)
+    {
+        endIndexBuffer[currentIndex] = index + 1;
+    }
     
     if(prevIndex < currentIndex)
     {
         //currentIndexがそのインデックスのブロックの始まり
         beginIndexBuffer[currentIndex] = index;
+        endIndexBuffer[prevIndex] = index;
     }
     
 }

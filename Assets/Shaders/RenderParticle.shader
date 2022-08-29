@@ -54,7 +54,8 @@ Shader "Unlit/RenderParticler"
             v2f vert(appdata v)
             {
                 v2f o;
-                o.vertex = UnityObjectToClipPos(float4(buffer[v.instanceId].pos,0.0,0.0) + v.vertex * 0.1);
+                float size = buffer[v.instanceId].isActive;
+                o.vertex = UnityObjectToClipPos(float4(buffer[v.instanceId].pos,0.0,0.0) + v.vertex * 0.025 * size);
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
                 UNITY_TRANSFER_FOG(o, o.vertex);
                 return o;
