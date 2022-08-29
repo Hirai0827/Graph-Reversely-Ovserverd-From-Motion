@@ -6,8 +6,8 @@
 
 struct ParticleConnection
 {
-    int indexA;
-    int indexB;
+    uint indexA;
+    uint indexB;
     float2 basePosition;
     float intensity;
 };

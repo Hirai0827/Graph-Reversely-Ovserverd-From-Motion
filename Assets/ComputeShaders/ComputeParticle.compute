@@ -15,8 +15,8 @@ struct Particle
 
 struct ParticleConnection
 {
-    int indexA;
-    int indexB;
+    uint indexA;
+    uint indexB;
     float2 basePosition;
     float intensity;
 };
@@ -25,8 +25,8 @@ StructuredBuffer<Particle> src;
 RWStructuredBuffer<Particle> dest;
 StructuredBuffer<ParticleConnection> connectionBuffer;
 StructuredBuffer<int> connectionIndexBuffer;
-StructuredBuffer<int> connectionBeginIndexBuffer;
-StructuredBuffer<int> connectionEndIndexBuffer;
+StructuredBuffer<uint> connectionBeginIndexBuffer;
+StructuredBuffer<uint> connectionEndIndexBuffer;
 
 float deltaTime;
 int maxParticle;
@@ -74,15 +74,6 @@ void Update (uint3 id : SV_DispatchThreadID)
             
             //acc = acc + (normalize(relPos)/(1.0 + distance * distance * 0.25)) * 120.0;
         }
-    }
-
-    for(int i = 0; i < 32; i++)
-    {
-        Particle targetP = src[(i * 10274 + 100 + index) % maxParticle];
-        float2 relPos = targetP.pos - p.pos;
-        float distance = length(relPos);
-        float2 dir = distance < 0.000001 ? 0.000 : normalize(relPos);
-        acc = acc - (dir/(1.0 + distance * distance * 32.0)) * 24.0 *(float)targetP.isActive;
     }
     
     p.pos = p.pos + p.vel * deltaTime;

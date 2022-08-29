@@ -92,8 +92,8 @@ public class GPUResourceManager
         int connectionSize = Marshal.SizeOf(typeof(ParticleConnection));
         var connectionData = data.connections.Select(x =>
         {
-            x.indexA += offset * bufferUnitSize;
-            x.indexB += offset * bufferUnitSize;
+            x.indexA += (uint)(offset * bufferUnitSize);
+            x.indexB += (uint)(offset * bufferUnitSize);
             return x;
         }).ToArray();
         particleBuffer.Src.SetData(data.particles,0,bufferUnitSize * offset,data.particles.Length);

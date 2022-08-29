@@ -18,9 +18,9 @@ public class BitonicSort
         swapKid = bitonicShader.FindKernel("Swap");
     }
 
-    public void Sort(SwappableComputeBuffer<int> buffer,ComputeBuffer compareTargetBuffer)
+    public void Sort(SwappableComputeBuffer<int> indexBuffer,ComputeBuffer compareTargetBuffer)
     {
-        var isPowOfTwo = IsPowOfTwo(buffer.Count, out var iterCount);
+        var isPowOfTwo = IsPowOfTwo(indexBuffer.Count, out var iterCount);
         if (!isPowOfTwo)
         {
             throw new ArgumentException("the number of buffer elements must be pow of 2.");
@@ -30,7 +30,7 @@ public class BitonicSort
         {
             for (int y = 0; y <= x; y++)
             {
-                Swap(buffer,compareTargetBuffer,x,y);
+                Swap(indexBuffer,compareTargetBuffer,x,y);
                 // var array = new float[buffer.Count];
                 // buffer.Src.GetData(array);
                 // var str = "";
@@ -43,16 +43,16 @@ public class BitonicSort
         }
     }
 
-    private void Swap(SwappableComputeBuffer<int> buffer,ComputeBuffer compareTargetBuffer,int mainIter,int subIter)
+    private void Swap(SwappableComputeBuffer<int> indexBuffer,ComputeBuffer compareTargetBuffer,int mainIter,int subIter)
     {
-        bitonicShader.SetBuffer(swapKid,"src",buffer.Src);
-        bitonicShader.SetBuffer(swapKid,"dest",buffer.Dest);
+        bitonicShader.SetBuffer(swapKid,"src",indexBuffer.Src);
+        bitonicShader.SetBuffer(swapKid,"dest",indexBuffer.Dest);
         bitonicShader.SetBuffer(swapKid,"connectionBuffer",compareTargetBuffer);
         bitonicShader.SetInt("mainIter",mainIter);
         bitonicShader.SetInt("subIter",subIter);
-        bitonicShader.SetInt("count",buffer.Count);
-        bitonicShader.Dispatch(swapKid,buffer.Count / 256 + 1,1,1);
-        buffer.Swap();
+        bitonicShader.SetInt("count",indexBuffer.Count);
+        bitonicShader.Dispatch(swapKid,indexBuffer.Count / 256 + 1,1,1);
+        indexBuffer.Swap();
     }
 
     private bool IsPowOfTwo(int x,out int a)

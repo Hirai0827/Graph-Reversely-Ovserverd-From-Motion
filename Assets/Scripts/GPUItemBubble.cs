@@ -36,9 +36,9 @@ namespace DefaultNamespace
             {
                 var c = new ParticleConnection();
                 c.intensity = 64.0f;
-                c.indexA = i;
-                c.indexB = (i + 1) % 8;
-                c.basePosition = particles[c.indexB].pos - particles[c.indexA].pos;
+                c.indexA = (uint)i;
+                c.indexB = (uint)(i + 1) % 8;
+                c.basePosition = particles[(int)c.indexB].pos - particles[(int)c.indexA].pos;
                 connections.Add(c);
             }
 
@@ -46,9 +46,9 @@ namespace DefaultNamespace
             {
                 var c = new ParticleConnection();
                 c.intensity = 0.1f;
-                c.indexB = i;
-                c.indexA = (i + 1) % 8;
-                c.basePosition = particles[c.indexB].pos - particles[c.indexA].pos;
+                c.indexB = (uint)i;
+                c.indexA = (uint)(i + 1) % 8;
+                c.basePosition = particles[(int)c.indexB].pos - particles[(int)c.indexA].pos;
                 connections.Add(c);
             }
 

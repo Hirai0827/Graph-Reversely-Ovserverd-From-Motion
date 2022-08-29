@@ -17,8 +17,8 @@ public struct Particle
 
 public struct ParticleConnection
 {
-    public int indexA;
-    public int indexB;
+    public uint indexA;
+    public uint indexB;
     public Vector2 basePosition;
     public float intensity;
 }
@@ -70,6 +70,7 @@ public class ParticleManager : MonoBehaviour
     private void FixedUpdate()
     {
         UpdateInternal(0.016f);
+        //LogInfo();
     }
 
     private void Update()

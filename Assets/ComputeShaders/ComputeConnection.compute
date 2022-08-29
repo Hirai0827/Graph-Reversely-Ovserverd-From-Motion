@@ -19,8 +19,8 @@ struct Particle
 
 struct ParticleConnection
 {
-    int indexA;
-    int indexB;
+    uint indexA;
+    uint indexB;
     float2 basePosition;
     float intensity;
 };
@@ -30,8 +30,8 @@ RWStructuredBuffer<ParticleConnection> dest;
 
 StructuredBuffer<Particle> particleBuffer;
 RWStructuredBuffer<int> indexBuffer;
-RWStructuredBuffer<int> beginIndexBuffer;
-RWStructuredBuffer<int> endIndexBuffer;
+RWStructuredBuffer<uint> beginIndexBuffer;
+RWStructuredBuffer<uint> endIndexBuffer;
 float deltaTime;
 int maxConnection;
 
@@ -55,8 +55,8 @@ void Init (uint3 id : SV_DispatchThreadID)
     // c.intensity = 22.5;
     // dest[index] = c;
     ParticleConnection c;
-    c.indexA = -1;
-    c.indexB = -1;
+    c.indexA = 0xffffffff;
+    c.indexB = 0xffffffff;
     c.intensity = 0.0;
     c.basePosition = 0.0;
     dest[index] = c;
@@ -87,36 +87,37 @@ void Update (uint3 id : SV_DispatchThreadID)
 void ResetIndex (uint3 id : SV_DispatchThreadID)
 {
     uint index = id.x;
-    beginIndexBuffer[index] = 1024 * 1024;
-    endIndexBuffer[index] = -1;
+    beginIndexBuffer[index] = 0xffffffff;
+    endIndexBuffer[index] = 0xffffffff;
     
 }
 
 [numthreads(256,1,1)]
 void ReIndex (uint3 id : SV_DispatchThreadID)
 {
-    uint index = id.x;
+    int index = id.x;
 
     //indexBuffer[i]で並べたsrcはc.indexAが昇順に並んでいる
-    ParticleConnection c = src[indexBuffer[index]];
-    ParticleConnection prevC = src[indexBuffer[index - 1]];
-    int currentIndex = c.indexA;
-    int prevIndex = prevC.indexA;
+    int prevIndexA = src[indexBuffer[index - 1]].indexA;
+    int currentIndexA = src[indexBuffer[index]].indexA;
+    int nextIndexA = src[indexBuffer[index+1]].indexA;
 
-    if(currentIndex == 0 && index == 0)
+    if(index - 1 < 0)
     {
-        beginIndexBuffer[currentIndex] = index;
+        prevIndexA = 0xffffffff;
     }
-    if(index == maxConnection - 1)
+    if(index + 1 >= maxConnection)
     {
-        endIndexBuffer[currentIndex] = index + 1;
+        nextIndexA = 0xffffffff;
     }
-    
-    if(prevIndex < currentIndex)
+
+    if(prevIndexA != currentIndexA)
     {
-        //currentIndexがそのインデックスのブロックの始まり
-        beginIndexBuffer[currentIndex] = index;
-        endIndexBuffer[prevIndex] = index;
+        beginIndexBuffer[currentIndexA] = index;
+    }
+    if(currentIndexA != nextIndexA)
+    {
+        endIndexBuffer[currentIndexA] = index + 1;
     }
     
 }
