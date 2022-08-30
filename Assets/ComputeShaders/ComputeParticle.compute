@@ -25,6 +25,7 @@ struct ParticleConnection
     uint indexB;
     float2 basePosition;
     float intensity;
+    float4 color;
 };
 
 StructuredBuffer<Particle> src;

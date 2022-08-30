@@ -28,6 +28,7 @@ Shader "Unlit/RenderConnection"
             uint indexB;
             float2 basePosition;
             float intensity;
+            float4 color;
         };
 
         StructuredBuffer<Particle> buffer;
@@ -73,7 +74,7 @@ Shader "Unlit/RenderConnection"
                 float2 pos = (vecA * v.vertex.x + vecB * v.vertex.y) + (pA.pos + pB.pos) * 0.5;
                 o.vertex = UnityObjectToClipPos(float4(pos,0.0,1.0));
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
-                o.color = 1.0 * 2.0;
+                o.color = c.color;
                 UNITY_TRANSFER_FOG(o, o.vertex);
                 return o;
             }

@@ -40,6 +40,7 @@ namespace DefaultNamespace
                 c.indexA = (uint)i;
                 c.indexB = (uint)(i + 1) % (uint)count;
                 c.basePosition = particles[(int)c.indexB].pos * 0.75f - particles[(int)c.indexA].pos * 0.75f;
+                c.color = Color.white * 2.0f;
                 connections.Add(c);
             }
 
@@ -50,6 +51,7 @@ namespace DefaultNamespace
                 c.indexB = (uint)i;
                 c.indexA = (uint)(i + 1) % (uint)count;
                 c.basePosition = particles[(int)c.indexB].pos * 0.75f - particles[(int)c.indexA].pos * 0.75f;
+                c.color = Color.white * 2.0f;
                 connections.Add(c);
             }
 

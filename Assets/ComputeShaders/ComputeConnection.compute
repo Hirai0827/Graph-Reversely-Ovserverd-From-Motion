@@ -23,6 +23,7 @@ struct ParticleConnection
     uint indexB;
     float2 basePosition;
     float intensity;
+    float4 color;
 };
 
 StructuredBuffer<ParticleConnection> src;
@@ -59,6 +60,7 @@ void Init (uint3 id : SV_DispatchThreadID)
     c.indexB = 0xffffffff;
     c.intensity = 0.0;
     c.basePosition = 0.0;
+    c.color = float4(1.0,1.0,1.0,1.0);
     dest[index] = c;
     indexBuffer[index] = index;
 }

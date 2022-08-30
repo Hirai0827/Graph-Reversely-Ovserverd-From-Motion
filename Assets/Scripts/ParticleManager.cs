@@ -22,6 +22,7 @@ public struct ParticleConnection
     public uint indexB;
     public Vector2 basePosition;
     public float intensity;
+    public Color color;
 }
 
 

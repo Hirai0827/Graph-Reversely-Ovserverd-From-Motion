@@ -66,6 +66,7 @@ namespace DefaultNamespace
                     c.indexA = 0;
                     c.indexB = (uint)baseIndex;
                     c.basePosition = particles[(int)c.indexB].pos - particles[(int)c.indexA].pos;
+                    c.color = Color.white * 2.0f;
                     connections.Add(c);
                 }
                 
@@ -83,6 +84,7 @@ namespace DefaultNamespace
                         c.indexB = (uint)(baseIndex);
                     }
                     c.basePosition = particles[(int)c.indexB].pos - particles[(int)c.indexA].pos;
+                    c.color = Color.red * 2.0f;
                     connections.Add(c);
                 }
             }
@@ -96,6 +98,7 @@ namespace DefaultNamespace
                     c.indexB = 0;
                     c.indexA = (uint)baseIndex;
                     c.basePosition = particles[(int)c.indexB].pos - particles[(int)c.indexA].pos;
+                    c.color = Color.white * 2.0f;
                     connections.Add(c);
                 }
                 
@@ -113,6 +116,7 @@ namespace DefaultNamespace
                         c.indexA = (uint)(baseIndex);
                     }
                     c.basePosition = particles[(int)c.indexB].pos - particles[(int)c.indexA].pos;
+                    c.color = Color.red * 2.0f;
                     connections.Add(c);
                 }
             }
