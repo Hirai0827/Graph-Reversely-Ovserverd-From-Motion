@@ -105,7 +105,7 @@ public class ParticleManager : MonoBehaviour
         Render();
         if (Input.GetKeyDown(KeyCode.A))
         {
-            var bubble = new GPUItemFlower(new Vector2(Random.Range(-4.0f,4.0f),Random.Range(-4.0f,4.0f)),0.5f);
+            var bubble = new GPUItemFlower(new Vector2(Random.Range(-9.0f,9.0f),Random.Range(-4.0f,4.0f)),Random.Range(0.125f,0.5f));
             var offset = manager.FindEmptySlot(1);
             Debug.Log(offset);
             if (offset == -1)
