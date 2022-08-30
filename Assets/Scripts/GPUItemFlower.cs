@@ -40,7 +40,7 @@ namespace DefaultNamespace
                     var p = new Particle();
                     p.pos = center + dir * (radius * ((float)j / petalVertexCount));
                     p.vel = Vector2.zero;
-                    p.time = 20.0f;
+                    p.time = 20.0f - Random.Range(0.0f,3.0f);
                     p.isActive = 1;
                     particles.Add(p);
                 }

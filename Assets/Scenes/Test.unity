@@ -498,8 +498,8 @@ MonoBehaviour:
   computeConnectionShader: {fileID: 7200000, guid: e1d4ca52c27b8bc41b991521a32cb208, type: 3}
   particleSortShader: {fileID: 7200000, guid: beb1714e1088c8848b7854a7c70f3a9f, type: 3}
   edgeSortShader: {fileID: 7200000, guid: 7b8458e936b39524b987ec6545c4fb8a, type: 3}
-  particleLimit: 16384
-  connectionLimit: 16384
+  particleLimit: 32768
+  connectionLimit: 32768
   minCorner: {x: -10, y: -5}
   maxCorner: {x: 10, y: 5}
   cellCountX: 50

@@ -119,7 +119,7 @@ void Update (uint3 id : SV_DispatchThreadID)
                     {
                         Particle targetParticle = src[targetIndex];
                         float2 relPos = targetParticle.pos - p.pos;
-                        acc = acc - (relPos)/(0.01 + dot(relPos,relPos) * 100.0) * 1.0;
+                        acc = acc - (relPos)/(0.01 + dot(relPos,relPos) * 10.0) * 1.0;
                     }
                 }
             }
@@ -128,7 +128,7 @@ void Update (uint3 id : SV_DispatchThreadID)
     
     p.pos = p.pos + p.vel * deltaTime;
     p.vel = p.vel + acc * deltaTime;
-    p.vel = p.vel *0.999;
+    p.vel = p.vel *0.99;
     p.vel = isnan(p.vel) ? 0.0 : p.vel;
     p.lifeTime = p.lifeTime - deltaTime;
     if(p.lifeTime < 0.0 && p.isActive == 1)
