@@ -13,6 +13,12 @@ struct Particle
     int isActive;
 };
 
+struct ParticleIndex
+{
+    uint index;
+    uint cellIndex;
+};
+
 struct ParticleConnection
 {
     uint indexA;
@@ -27,10 +33,19 @@ StructuredBuffer<ParticleConnection> connectionBuffer;
 StructuredBuffer<int> connectionIndexBuffer;
 StructuredBuffer<uint> connectionBeginIndexBuffer;
 StructuredBuffer<uint> connectionEndIndexBuffer;
+StructuredBuffer<ParticleIndex> particleIndexBuffer;
+StructuredBuffer<uint> particleBeginIndexBuffer;
+StructuredBuffer<uint> particleEndIndexBuffer;
 
 float deltaTime;
 int maxParticle;
 int maxConnection;
+
+float2 minCorner;
+float2 maxCorner;
+
+int cellCountX;
+int cellCountY;
 
 [numthreads(256,1,1)]
 void Init (uint3 id : SV_DispatchThreadID)
@@ -55,9 +70,15 @@ void Init (uint3 id : SV_DispatchThreadID)
 [numthreads(256,1,1)]
 void Update (uint3 id : SV_DispatchThreadID)
 {
-    uint index = id.x;
+    uint index = particleIndexBuffer[id.x].index;
+    uint cellIndex = particleIndexBuffer[id.x].cellIndex;
+    
     Particle p = src[index];
+    int X = cellIndex % cellCountX;
+    int Y = (cellIndex - X) / cellCountX;
     float2 acc = float2(0.0,0.0);
+
+    //calc effect of connection
 
     int beginConnectionIndex = connectionBeginIndexBuffer[index];
     int endConnectionIndex = connectionEndIndexBuffer[index];
@@ -70,22 +91,72 @@ void Update (uint3 id : SV_DispatchThreadID)
             Particle connectedP = src[c.indexB];
             float2 relPos = connectedP.pos - p.pos;
             float distance = length(c.basePosition) - length(relPos);
-            acc = acc - c.intensity*normalize(relPos) * distance;
+            float2 norm = float2(c.basePosition.y,-c.basePosition.x);
+            float2 diff = dot(relPos - c.basePosition,norm)/dot(norm,norm) * norm;
+            acc = acc - c.intensity *normalize(relPos) * distance;
+            acc = acc + c.intensity * normalize(diff) * dot(diff,diff) * 1.0;
             
             //acc = acc + (normalize(relPos)/(1.0 + distance * distance * 0.25)) * 120.0;
+        }
+    }
+
+    //calc effect of particle
+
+    
+    for(int xi = -2; xi < 3; xi++)
+    {
+        for(int yi = -2; yi < 3; yi++)
+        {
+            if(0 <= X + xi && X + xi < cellCountX && 0 <= Y + yi && Y + yi < cellCountY)
+            {
+                int targetCellIndex = (X + xi) + (Y + yi) * cellCountX;
+                int beginIndex = particleBeginIndexBuffer[targetCellIndex];
+                int endIndex = particleEndIndexBuffer[targetCellIndex];
+                for(int j = beginIndex; j < endIndex; j++)
+                {
+                    uint targetIndex = particleIndexBuffer[j].index;
+                    if(targetIndex != index)
+                    {
+                        Particle targetParticle = src[targetIndex];
+                        float2 relPos = targetParticle.pos - p.pos;
+                        acc = acc - (relPos)/(0.01 + dot(relPos,relPos) * 100.0) * 1.0;
+                    }
+                }
+            }
         }
     }
     
     p.pos = p.pos + p.vel * deltaTime;
     p.vel = p.vel + acc * deltaTime;
-    p.vel = p.vel *0.9;
+    p.vel = p.vel *0.999;
     p.vel = isnan(p.vel) ? 0.0 : p.vel;
     p.lifeTime = p.lifeTime - deltaTime;
     if(p.lifeTime < 0.0 && p.isActive == 1)
     {
         p.isActive = 0;
     }
-    p.pos.x = clamp(p.pos.x,-8,8);
-    p.pos.y = clamp(p.pos.y,-8,8);
+    p.pos.x = clamp(p.pos.x,minCorner.x + 0.0001,maxCorner.x - 0.0001);
+    p.pos.y = clamp(p.pos.y,minCorner.y + 0.0001,maxCorner.y - 0.0001);
+    if(p.pos.x < minCorner.x)
+    {
+        p.pos.x = minCorner.x + 0.0001;
+        p.vel.x = -p.vel.x;
+    }
+    if(p.pos.x > maxCorner.x)
+    {
+        p.pos.x = maxCorner.x - 0.0001;
+        p.vel.x = -p.vel.x;
+    }
+
+    if(p.pos.y < minCorner.y)
+    {
+        p.pos.y = minCorner.y + 0.0001;
+        p.vel.y = -p.vel.y;
+    }
+    if(p.pos.y > maxCorner.y)
+    {
+        p.pos.y = maxCorner.y - 0.0001;
+        p.vel.y = -p.vel.y;
+    }
     dest[index] = p;
 }

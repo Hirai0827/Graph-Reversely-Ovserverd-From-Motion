@@ -1,0 +1,126 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Preprocess
+#pragma kernel ResetIndex
+#pragma kernel Reindex
+#pragma kernel Swap
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+
+struct ParticleIndex
+{
+    uint index;
+    uint cellIndex;
+};
+
+struct Particle
+{
+    float2 pos;
+    float2 vel;
+    float lifeTime;
+    int isActive;
+};
+
+StructuredBuffer<Particle> particleBuffer;
+RWStructuredBuffer<ParticleIndex> indexBuffer;
+float2 minCorner;
+float2 maxCorner;
+int cellCountX;
+int cellCountY;
+
+
+RWStructuredBuffer<int> beginIndexBuffer;
+RWStructuredBuffer<int> endIndexBuffer;
+int cellCount;
+
+StructuredBuffer<ParticleIndex> src;
+RWStructuredBuffer<ParticleIndex> dest;
+int mainIter;
+int subIter;
+int count;
+
+
+[numthreads(256,1,1)]
+void Preprocess(uint3 id : SV_DispatchThreadID)
+{
+    uint index = id.x;
+    Particle p = particleBuffer[index];
+    ParticleIndex pin;
+    pin.index = index;
+    float2 areaSize = maxCorner - minCorner;
+    float cellWidth = areaSize.x / cellCountX;
+    float cellHeight = areaSize.y / cellCountY;
+    float2 pos = p.pos - minCorner;
+    int X = pos.x / cellWidth;
+    int Y = pos.y / cellHeight;
+    pin.cellIndex = X + Y * cellCountX;
+    if(p.isActive == 0)
+    {
+        pin.cellIndex = 0xffffffff;
+    }
+    indexBuffer[index] = pin;
+}
+
+[numthreads(256,1,1)]
+void ResetIndex(uint3 id : SV_DispatchThreadID)
+{
+    uint index = id.x;
+    beginIndexBuffer[index] = 0xffffffff;
+    endIndexBuffer[index] = 0xffffffff;
+}
+
+[numthreads(256,1,1)]
+void Reindex(uint3 id : SV_DispatchThreadID)
+{
+    int index = id.x;
+    int prevIndex = index - 1;
+    int nextIndex = index + 1;
+
+    uint currentCell = indexBuffer[index].cellIndex;
+    uint prevCell = indexBuffer[prevIndex].cellIndex;
+    uint nextCell = indexBuffer[nextIndex].cellIndex;
+    if(prevIndex < 0)
+    {
+        prevCell = 0xffffffff;
+    }
+    if(nextCell >= cellCount)
+    {
+        nextCell = 0xffffffff;
+    }
+
+    if(currentCell != 0xffffffff)
+    {
+        if(prevCell != currentCell)
+        {
+            beginIndexBuffer[currentCell] = index;
+        }
+        if(currentCell != nextCell)
+        {
+            endIndexBuffer[currentCell] = nextIndex;
+        }
+    }
+}
+
+
+[numthreads(256,1,1)]
+void Swap (uint3 id : SV_DispatchThreadID)
+{
+    int mainSize = pow(2,mainIter + 1);
+    int stride = pow(2,mainIter - subIter);
+    int index = id.x;
+    int isSwappable = index % (stride*2) < (stride) ? 1 : 0;
+    int dir = (index /mainSize) % 2;
+    ParticleIndex from = src[index];
+    ParticleIndex to = src[index + stride];
+    if(isSwappable == 1)
+    {
+        if(dir == (src[index].cellIndex < src[index + stride].cellIndex))
+        {
+            ParticleIndex tmp=to;
+            to=from;
+            from=tmp;
+        }
+        dest[index] = from;
+        dest[index + stride] = to;
+    }    
+}

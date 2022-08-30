@@ -57,7 +57,10 @@ namespace DefaultNamespace
             ComputeBuffer connectionIndexBuffer,
             ComputeBuffer connectionBeginIndexBuffer,
             ComputeBuffer connectionEndIndexBuffer,
-            float deltaTime)
+            ComputeBuffer particleIndexBuffer,
+            ComputeBuffer particleBeginIndexBuffer,
+            ComputeBuffer particleEndIndexBuffer,
+            float deltaTime,Vector2 minCorner,Vector2 maxCorner,int cellCountX,int cellCountY)
         {
             var dispatchCount = GetDispatchCount(buffer.Count);
             
@@ -67,9 +70,16 @@ namespace DefaultNamespace
             this.computeShader.SetBuffer(updateKernelId,connectionIndexBufferId,connectionIndexBuffer);
             this.computeShader.SetBuffer(updateKernelId,connectionBeginIndexBufferId,connectionBeginIndexBuffer);
             this.computeShader.SetBuffer(updateKernelId,connectionEndIndexBufferId,connectionEndIndexBuffer);
+            this.computeShader.SetBuffer(updateKernelId,"particleIndexBuffer",particleIndexBuffer);
+            this.computeShader.SetBuffer(updateKernelId,"particleBeginIndexBuffer",particleBeginIndexBuffer);
+            this.computeShader.SetBuffer(updateKernelId,"particleEndIndexBuffer",particleEndIndexBuffer);
             this.computeShader.SetFloat(DeltaTimeId,deltaTime);
             this.computeShader.SetInt(MaxConnectionId,connectionBuffer.Count);
             this.computeShader.SetInt(MaxParticleId,buffer.Count);
+            this.computeShader.SetVector("minCorner",minCorner);
+            this.computeShader.SetVector("maxCorner",maxCorner);
+            this.computeShader.SetInt("cellCountX",cellCountX);
+            this.computeShader.SetInt("cellCountY",cellCountY);
             this.computeShader.Dispatch(updateKernelId,dispatchCount,1,1);
             buffer.Swap();
         }

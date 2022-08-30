@@ -1,0 +1,88 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Update
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+struct Particle
+{
+    float2 pos;
+    float2 vel;
+    float time;
+};
+
+struct ParticleIndex
+{
+    uint index;
+    uint cellIndex;
+};
+
+StructuredBuffer<Particle> src;
+StructuredBuffer<ParticleIndex> indexBuffer;
+StructuredBuffer<uint> beginIndexBuffer;
+StructuredBuffer<uint> endIndexBuffer;
+RWStructuredBuffer<Particle> dest;
+int cellCountX;
+int cellCountY;
+
+
+[numthreads(256,1,1)]
+void Update (uint3 id : SV_DispatchThreadID)
+{
+    uint index = indexBuffer[id.x].index;
+    uint cellIndex = indexBuffer[id.x].cellIndex;
+    int X = cellIndex % cellCountX;
+    int Y = (cellIndex - X) / cellCountX;
+    Particle p = src[index];
+
+    p.pos = p.pos + p.vel * 0.016;
+    float2 acc = 0;
+    for(int xi = -2; xi < 3; xi++)
+    {
+        for(int yi = -2; yi < 3; yi++)
+        {
+            if(0 <= X + xi && X + xi < cellCountX && 0 <= Y + yi && Y + yi < cellCountY)
+            {
+                int targetCellIndex = (X + xi) + (Y + yi) * cellCountX;
+                int beginIndex = beginIndexBuffer[targetCellIndex];
+                int endIndex = endIndexBuffer[targetCellIndex];
+                for(int j = beginIndex; j < endIndex; j++)
+                {
+                    uint targetIndex = indexBuffer[j].index;
+                    if(targetIndex != index)
+                    {
+                        Particle targetParticle = src[targetIndex];
+                        float2 relPos = targetParticle.pos - p.pos;
+                        acc += -(relPos)/(0.5 + dot(relPos,relPos) * 10000.0) * 1.0;
+                    }
+                }
+            }
+        }
+    }
+    p.vel = p.vel + acc * 0.016;
+    p.vel = p.vel * 0.999f;
+    p.time = p.time + 0.016;
+
+    if(p.pos.x < -5)
+    {
+        p.pos.x = -4.999;
+        p.vel.x = -p.vel.x;
+    }
+    if(p.pos.x > 5)
+    {
+        p.pos.x = 4.999;
+        p.vel.x = -p.vel.x;
+    }
+
+    if(p.pos.y < -5)
+    {
+        p.pos.y = -4.999;
+        p.vel.y = -p.vel.y;
+    }
+    if(p.pos.y > 5)
+    {
+        p.pos.y = 4.999;
+        p.vel.y = -p.vel.y;
+    }
+
+    
+    dest[index] = p;
+}

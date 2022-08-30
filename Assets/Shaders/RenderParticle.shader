@@ -46,6 +46,7 @@ Shader "Unlit/RenderParticler"
                 float2 uv : TEXCOORD0;
                 UNITY_FOG_COORDS(1)
                 float4 vertex : SV_POSITION;
+                float4 color : COLOR;
             };
 
             sampler2D _MainTex;
@@ -56,6 +57,7 @@ Shader "Unlit/RenderParticler"
                 v2f o;
                 float size = buffer[v.instanceId].isActive;
                 o.vertex = UnityObjectToClipPos(float4(buffer[v.instanceId].pos,0.0,0.0) + v.vertex * 0.025 * size);
+                o.color = 1.0 * 2.0;
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
                 UNITY_TRANSFER_FOG(o, o.vertex);
                 return o;
@@ -64,7 +66,7 @@ Shader "Unlit/RenderParticler"
             fixed4 frag(v2f i) : SV_Target
             {
                 // sample the texture
-                fixed4 col = tex2D(_MainTex, i.uv);
+                fixed4 col = i.color;
                 // apply fog
                 UNITY_APPLY_FOG(i.fogCoord, col);
                 return col;
